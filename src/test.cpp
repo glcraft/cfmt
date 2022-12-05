@@ -2,7 +2,7 @@
 #include <cstfmt/parser.h>
 
 using namespace std;
-static constexpr char txt[] = "Hello '{1234}' world '{12}'!";
+static constexpr char txt[] = "Hello {{'{1234}' world '{12}'}}!";
 static constexpr auto parser = Parser{txt};
 
 static constexpr auto length_plaintext = parser.length_plaintext();

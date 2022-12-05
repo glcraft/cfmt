@@ -29,7 +29,7 @@ struct Lexer {
             return end-begin; 
         }
     };
-    constexpr Lexer(std::string_view str, size_t pos = 0) : next_type(TokenType::None), pos(pos), text(str) 
+    constexpr Lexer(std::string_view str, size_t pos = 0) : next_type(TokenType::PlainText), pos(pos), text(str) 
     {}
 
     constexpr std::optional<Token> next() {
@@ -40,11 +40,27 @@ struct Lexer {
         while(this->pos < text.length()) {
             switch(this->text[this->pos]) {
                 case '{':
+                {
+                    auto current_type = this->next_type;
+                    if (this->next_type == TokenType::PlainText && this->pos != text.length()-1 && this->text[this->pos+1] == '{') {
+                        auto current_pos = this->pos+1;
+                        this->pos += 2;
+                        return Token{prev_pos, current_pos, current_type};
+                    }
                     this->next_type = TokenType::Argument;
-                    return Token{prev_pos, this->pos++, TokenType::PlainText};
+                    return Token{prev_pos, this->pos++, current_type};
+                }
                 case '}':
+                {
+                    auto current_type = this->next_type;
+                    if (this->next_type == TokenType::PlainText && this->pos != text.length()-1 && this->text[this->pos+1] == '}') {
+                        auto current_pos = this->pos+1;
+                        this->pos += 2;
+                        return Token{prev_pos, current_pos, current_type};
+                    }
                     this->next_type = TokenType::PlainText;
-                    return Token{prev_pos, this->pos++, TokenType::Argument};
+                    return Token{prev_pos, this->pos++, current_type};
+                }
                 default:
                     this->pos++;
             }
