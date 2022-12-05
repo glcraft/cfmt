@@ -18,7 +18,11 @@ target("cstfmt_test")
     set_languages("cxx20")
     add_files("src/test.cpp")
     if has_config("asm") then 
-        add_cxflags("-S")
+        if not is_plat("windows") then
+            add_cxflags("-S")
+        else
+            add_cxflags("/FA")
+        end
         set_kind("phony")
     else
         set_kind("binary")
