@@ -5,21 +5,59 @@
 #include <optional>
 #include "strlit.h"
 
-struct PlainText {
+struct Token;
+struct PlainText  {
     std::string text;
 };
 struct Argument {
     uint8_t index = -1;
-    std::vector<std::variant<PlainText, Argument>> format;
+    std::optional<std::vector<Token>> format;
+};
+struct Token {
+    enum class Type {
+        PlainText,
+        Argument
+    } type;
+    std::optional<PlainText> plain_text;
+    std::optional<Argument> argument;
+    constexpr Token(PlainText&& text) : plain_text(text), argument(std::nullopt), type(Type::PlainText) {}
+    constexpr Token(Argument&& arg) : plain_text(std::nullopt), argument(arg), type(Type::Argument) {}
+    constexpr Token(const Token& other) : plain_text(other.plain_text), argument(other.argument), type(other.type) {}
+    constexpr Token(Token&& other) : plain_text(std::move(other.plain_text)), argument(std::move(other.argument)), type(other.type) {}
+    constexpr ~Token()  = default;
 };
 
-struct Lexer {
+struct ArcumentFormat {
+    uint32_t fill = 0;
+    char align = '<';
+    char sign = ' ';
+    std::string format(std::string_view str) const {
+        std::string result;
+        result.reserve(str.length()+fill);
+        if (align == '<') {
+            result.append(str);
+            result.append(fill-str.length(), ' ');
+        } else if (align == '>') {
+            result.append(fill-str.length(), ' ');
+            result.append(str);
+        } else if (align == '^') {
+            auto left = (fill-str.length())/2;
+            auto right = fill-str.length()-left;
+            result.append(left, ' ');
+            result.append(str);
+            result.append(right, ' ');
+        }
+        return result;
+    }
+};
+
+struct Parser {
     struct Character {
         char c;
         size_t pos;
         bool escaped = false;
     };
-    constexpr Lexer(std::string_view str, size_t pos = 0) : pos(pos), text(str) 
+    constexpr Parser(std::string_view str, size_t pos = 0) : text(str) 
     {}
     constexpr size_t to_int(std::string_view str) const {
         size_t result = 0;
@@ -29,39 +67,9 @@ struct Lexer {
         return result;
     }
 
-    constexpr std::optional<Character> next_character() {
-        if (pos >= text.length()) {
-            return std::nullopt;
-        }
-        while (pos < text.length()) {
-            switch(text[pos]) {
-                case '{':
-                {
-                    // if (pos != text.length()-1 && text[pos+1] == '{') {
-                    //     pos += 2;
-                    //     return Character{'{', pos-2, true};
-                    // }
-                    return Character{'{', pos++, false};
-                }
-                case '}':
-                {
-                    // if (pos != text.length()-1 && text[pos+1] == '}') {
-                    //     pos += 2;
-                    //     return Character{'}', pos-2, true};
-                    // }
-                    return Character{'}', pos++, false};
-                }
-                case ':':
-                    return Character{':', pos++, false};
-                default:
-                    pos++;
-            }
-        }
-        return std::nullopt;
-    }
-    constexpr auto build_tree() {
-        auto lexer = Lexer(text);
-        std::vector<std::variant<PlainText, Argument>> result;
+    constexpr auto build_tree() const {
+        std::vector<Token> result;
+        size_t current_index = 0;
         std::vector<Argument> stack_arguments;
         auto prev_pos = 0;
         auto add_string_to_result = [&](auto&& str) {
@@ -69,111 +77,87 @@ struct Lexer {
                 if (stack_arguments.empty()) {
                     result.push_back(PlainText{std::string(str)});
                 } else {
-                    stack_arguments.back().format.push_back(PlainText{std::string(str)});
+                    if (stack_arguments.back().format == std::nullopt)
+                        stack_arguments.back().format.emplace();
+                    stack_arguments.back().format->emplace_back(PlainText{std::string(str)});
                 }
             }
         };
         auto get_index = [&](auto pos) {
             if (prev_pos != pos) {
-                return to_int(lexer.text.substr(prev_pos, pos-prev_pos));
+                return to_int(text.substr(prev_pos, pos-prev_pos));
             } else {
                 return current_index++;
             }
         };
-        while (auto ch = next_character()) {
-            if (ch->c == '{') {
-                add_string_to_result(lexer.text.substr(prev_pos, ch->pos-prev_pos));
+        for (auto pos = 0;pos<text.length();pos++) {
+            auto ch = text[pos];
+            if (ch == '{') {
+                add_string_to_result(text.substr(prev_pos, pos-prev_pos));
                 stack_arguments.push_back(Argument{});
-            } else if (ch->c == '}') {
+                prev_pos = pos+1;
+            } else if (ch == '}') {
                 // if (stack_arguments.empty()) {
                 //     throw std::runtime_error("Unexpected '}'");
                 // }
                 if (stack_arguments.back().index == static_cast<uint8_t>(-1)) {
-                    stack_arguments.back().index = get_index(ch->pos);
+                    stack_arguments.back().index = get_index(pos);
                 } else {
-                    add_string_to_result(lexer.text.substr(prev_pos, ch->pos-prev_pos));
+                    add_string_to_result(text.substr(prev_pos, pos-prev_pos));
                 }
-                auto arg = stack_arguments.back();
+                auto arg = std::move(stack_arguments.back());
                 stack_arguments.pop_back();
                 if (stack_arguments.empty()) {
-                    result.push_back(arg);
+                    result.push_back(std::move(arg));
                 } else {
-                    stack_arguments.back().format.push_back(arg);
+                    stack_arguments.back().format->emplace_back(std::move(arg));
                 }
-            } else if (ch->c == ':') {
+                prev_pos = pos+1;
+            } else if (ch == ':') {
                 // if (stack_arguments.empty()) {
                 //     throw std::runtime_error("Unexpected ':'");
                 // }
                 // if (stack_arguments.back().index != 0) {
                 //     throw std::runtime_error("Unexpected ':'");
                 // }
-                stack_arguments.back().index = get_index(ch->pos);
+                stack_arguments.back().index = get_index(pos);
+                prev_pos = pos+1;
             }
-            prev_pos = ch->pos+1;
         }
-        add_string_to_result(lexer.text.substr(prev_pos, lexer.pos-prev_pos));
+        add_string_to_result(text.substr(prev_pos));
         // if (!stack_arguments.empty()) {
         //     throw std::runtime_error("Missing '}'");
         // }
         return result;
     }
-    constexpr void reset() {
-        this->pos = 0;
-        this->current_index = 0;
-    }
-    size_t pos = 0;
-    size_t current_index = 0;
-    std::string_view text;
-    // TokenType current_type;
-    // std::vector<PartialToken> partial_tokens;
-};
-#if 0
-
-// template <size_t N>
-struct Parser {
-    constexpr Parser(std::string_view str) : text(str)
-    {}
-    constexpr size_t length_plaintext() const {
-        auto lexer = Lexer(text);
-        size_t len = 0;
-        while(auto token = lexer.next_character()) {
-            if (token->type == Lexer::TokenType::PlainText) {
-                len += token->length();
-            }
-        }
-        return len;
-    }
-    constexpr size_t number_arguments() const {
-        auto lexer = Lexer(text);
-        size_t num = 0;
-        while(auto token = lexer.next_character()) {
-            if (token->type == Lexer::TokenType::Argument) {
-                num++;
-            }
-        }
-        return num;
-    }
-    std::string_view text;
-};
-template <strlit::StringType to_parse, strlit::StringType... Args>
-struct Format : strlit::details::BaseString<Parser{to_parse}.length_plaintext()> {
-    constexpr Format() : strlit::details::BaseString<Parser{to_parse}.length_plaintext()>() {
-        constexpr auto parser = Parser{to_parse};
+    constexpr std::string parse(auto... args) const {
+        auto tree = this->build_tree();
         
-        auto lexer = Lexer(to_parse);
-        size_t pos = 0;
-        while(auto token = lexer.next_character()) {
-            if (token->type == Lexer::TokenType::PlainText) {
-                std::copy_n(to_parse.text+token->begin, token->length(), this->text+pos);
-                pos += token->length();
-            } else if (token->type == Lexer::TokenType::Argument) {
-                // auto arg = std::get<sizeof...(Args)-parser.number_arguments()>(std::forward_as_tuple(Args{}...));
-                // std::copy_n(arg.text, arg.size, this->text+pos);
-                // pos += arg.size;
-                // pos+=1;
+        //Evaluate every argument
+        std::vector<std::string> evaluated_arguments;
+        (evaluated_arguments.emplace_back(std::string_view{args}), ...);
+        std::string result;
+        for (auto&& node : tree) {
+            if (node.plain_text.has_value()) {
+                result += node.plain_text->text;
+            } else if (node.argument.has_value()) {
+                result += evaluated_arguments[node.argument->index];
             }
         }
+        return result;
     }
+    constexpr auto length(auto... args) const -> size_t {
+        return this->parse(args...).length();
+    }
+
+    std::string_view text;
 };
 
-#endif
+template <strlit::StringType to_parse, strlit::StringType... Args>
+struct Format : strlit::details::BaseString<Parser{to_parse}.length(Args...)> {
+    constexpr Format() : strlit::details::BaseString<Parser{to_parse}.length(Args...)>() {
+        constexpr auto parser = Parser{to_parse};
+        auto result = parser.parse(Args...);
+        std::copy(result.begin(), result.end(), this->text);
+    }
+};

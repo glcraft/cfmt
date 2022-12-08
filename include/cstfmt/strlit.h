@@ -1,3 +1,4 @@
+#include <__concepts/arithmetic.h>
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -56,6 +57,7 @@ namespace strlit {
         constexpr StringType(const char (&str)[N]) : String<N>(str) {}
         constexpr StringType(const String<N>& str) : String<N>(str) {}
     };
+    
     template<auto N>
     StringType(const char (&str)[N]) -> StringType<String<N>>;
     template <IsStringType T>
@@ -159,5 +161,11 @@ namespace strlit {
         constexpr Int() : details::BaseString<1>() {
             this->text[0] = '0';
         }
+    };
+    template<auto N>
+        requires std::integral<decltype(N)>
+    struct StringType<Int<N>> : Int<N> {
+        constexpr StringType(Int<N>) : Int<N>() {}
+        constexpr StringType(decltype(N)) : Int<N>() {}
     };
 }

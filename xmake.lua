@@ -23,7 +23,7 @@ target("cstfmt_test")
         else
             add_cxflags("/FA")
         end
-        set_kind("phony")
+        set_kind("binary")
     else
         set_kind("binary")
     end
