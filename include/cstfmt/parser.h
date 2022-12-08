@@ -27,137 +27,155 @@ struct Token {
     constexpr ~Token()  = default;
 };
 
-struct ArcumentFormat {
+struct ArgumentFormat {
     uint32_t fill = 0;
     char align = '<';
     char sign = ' ';
-    std::string format(std::string_view str) const {
+    constexpr ArgumentFormat() = default;
+    constexpr ArgumentFormat(uint32_t fill, char align, char sign) : fill(fill), align(align), sign(sign) 
+    {}
+    constexpr ArgumentFormat(std::string_view format_text) {
+        std::optional<char> align;
+        for (auto ch : format_text) {
+            if (ch >= '0' && ch <= '9') {
+                fill = fill*10 + (ch-'0');
+            } else if (ch == '<' || ch == '>' || ch == '^') {
+                align = ch;
+            } else if (ch == '+' || ch == '-' || ch == ' ') {
+                sign = ch;
+            }
+        }
+    }
+
+    constexpr std::string format(std::string_view str) const {
         std::string result;
-        result.reserve(str.length()+fill);
+        result.reserve(std::max<size_t>(str.length(),fill));
         if (align == '<') {
             result.append(str);
-            result.append(fill-str.length(), ' ');
+            result.append(fill-str.length(), sign);
         } else if (align == '>') {
-            result.append(fill-str.length(), ' ');
+            if (str.length() < fill) {
+                result.append(fill-str.length(), sign);
+            }
             result.append(str);
         } else if (align == '^') {
-            auto left = (fill-str.length())/2;
-            auto right = fill-str.length()-left;
-            result.append(left, ' ');
-            result.append(str);
-            result.append(right, ' ');
-        }
-        return result;
-    }
-};
-
-struct Parser {
-    struct Character {
-        char c;
-        size_t pos;
-        bool escaped = false;
-    };
-    constexpr Parser(std::string_view str, size_t pos = 0) : text(str) 
-    {}
-    constexpr size_t to_int(std::string_view str) const {
-        size_t result = 0;
-        for (auto c : str) {
-            result = result*10 + (c-'0');
-        }
-        return result;
-    }
-
-    constexpr auto build_tree() const {
-        std::vector<Token> result;
-        size_t current_index = 0;
-        std::vector<Argument> stack_arguments;
-        auto prev_pos = 0;
-        auto add_string_to_result = [&](auto&& str) {
-            if (!str.empty()) {
-                if (stack_arguments.empty()) {
-                    result.push_back(PlainText{std::string(str)});
-                } else {
-                    if (stack_arguments.back().format == std::nullopt)
-                        stack_arguments.back().format.emplace();
-                    stack_arguments.back().format->emplace_back(PlainText{std::string(str)});
-                }
-            }
-        };
-        auto get_index = [&](auto pos) {
-            if (prev_pos != pos) {
-                return to_int(text.substr(prev_pos, pos-prev_pos));
+            if (str.length() >= fill) {
+                result.append(str);
             } else {
-                return current_index++;
-            }
-        };
-        for (auto pos = 0;pos<text.length();pos++) {
-            auto ch = text[pos];
-            if (ch == '{') {
-                add_string_to_result(text.substr(prev_pos, pos-prev_pos));
-                stack_arguments.push_back(Argument{});
-                prev_pos = pos+1;
-            } else if (ch == '}') {
-                // if (stack_arguments.empty()) {
-                //     throw std::runtime_error("Unexpected '}'");
-                // }
-                if (stack_arguments.back().index == static_cast<uint8_t>(-1)) {
-                    stack_arguments.back().index = get_index(pos);
-                } else {
-                    add_string_to_result(text.substr(prev_pos, pos-prev_pos));
-                }
-                auto arg = std::move(stack_arguments.back());
-                stack_arguments.pop_back();
-                if (stack_arguments.empty()) {
-                    result.push_back(std::move(arg));
-                } else {
-                    stack_arguments.back().format->emplace_back(std::move(arg));
-                }
-                prev_pos = pos+1;
-            } else if (ch == ':') {
-                // if (stack_arguments.empty()) {
-                //     throw std::runtime_error("Unexpected ':'");
-                // }
-                // if (stack_arguments.back().index != 0) {
-                //     throw std::runtime_error("Unexpected ':'");
-                // }
-                stack_arguments.back().index = get_index(pos);
-                prev_pos = pos+1;
-            }
-        }
-        add_string_to_result(text.substr(prev_pos));
-        // if (!stack_arguments.empty()) {
-        //     throw std::runtime_error("Missing '}'");
-        // }
-        return result;
-    }
-    constexpr std::string parse(auto... args) const {
-        auto tree = this->build_tree();
-        
-        //Evaluate every argument
-        std::vector<std::string> evaluated_arguments;
-        (evaluated_arguments.emplace_back(std::string_view{args}), ...);
-        std::string result;
-        for (auto&& node : tree) {
-            if (node.plain_text.has_value()) {
-                result += node.plain_text->text;
-            } else if (node.argument.has_value()) {
-                result += evaluated_arguments[node.argument->index];
+                auto left = std::max<int32_t>(0,fill-str.length())/2;
+                auto right = fill-str.length()-left;
+                result.append(left, sign);
+                result.append(str);
+                result.append(right, sign);
             }
         }
         return result;
     }
-    constexpr auto length(auto... args) const -> size_t {
-        return this->parse(args...).length();
-    }
-
-    std::string_view text;
 };
+
+constexpr uint32_t to_int(std::string_view str) {
+    size_t result = 0;
+    for (auto c : str) {
+        result = result*10 + (c-'0');
+    }
+    return result;
+}
+struct Arg {
+    uint32_t id;
+    std::string format;
+};
+constexpr auto parse(std::string_view text) {
+    std::vector<std::variant<std::string, Arg>> result;
+    int32_t level=0;
+    size_t prev_pos = 0;
+    uint32_t current_index = 0;
+    auto get_index = [&](std::optional<std::string_view> str) {
+        if (str) {
+            return to_int(*str);
+        } else {
+            return current_index++;
+        }
+    };
+    auto add_string_to_last = [&](auto... to_add) {
+        if (result.empty()) {
+            result.push_back(std::string(to_add...));
+        }
+        auto& last = result.back();
+        if (std::holds_alternative<std::string>(last)) {
+            auto& str = std::get<std::string>(last);
+            str.append(to_add...);
+        } else {
+            auto& arg = std::get<Arg>(last);
+            arg.format.append(to_add...);
+        }
+    };
+    for(size_t pos = 0;pos<text.length();pos++) {
+        auto ch = text[pos];
+        if (ch == '{') {
+            if (level == 0) {
+                if (pos < text.length()-1 && text[pos+1] == '{') {
+                    add_string_to_last('{', 1);
+                    continue;
+                }
+                result.push_back(std::string(text.substr(prev_pos, pos-prev_pos)));
+            }
+            level++;
+            prev_pos = pos+1;
+        } else if (ch == '}') {
+            if (level == 0 && pos < text.length()-1 && text[pos+1] != '}') {
+                add_string_to_last('}', 1);
+                continue;
+            }
+            level--;
+            if (level == 0) {
+                auto arg = text.substr(prev_pos, pos-prev_pos);
+                auto pos = arg.find(':');
+                if (pos == std::string::npos) {
+                    result.push_back(Arg{get_index(std::nullopt), ""});
+                } else {
+                    result.push_back(Arg{to_int(arg.substr(0, pos)), std::string(arg.substr(pos+1))});
+                }
+            } else if (level < 0) {
+                // throw std::runtime_error("Unmatched '}'");
+            }
+            prev_pos = pos+1;
+        }
+    }
+    if (prev_pos != text.length()) {
+        result.push_back(std::string(text.substr(prev_pos)));
+    }
+    return result;
+}
+
+constexpr auto format(std::string_view format_text, auto... args) -> std::string {
+    auto parsed = parse(format_text);
+    std::string result;
+    for (auto& item : parsed) {
+        if (std::holds_alternative<std::string>(item)) {
+            result.append(std::get<std::string>(item));
+        } else {
+            auto& arg = std::get<Arg>(item);
+            // if (arg.id >= sizeof...(args)) {
+                // throw std::runtime_error("Not enough arguments");
+            // }
+            arg.format = format(std::string_view{arg.format}, args...);
+            ([&result, &arg, i=0](auto&& arg_value) mutable {
+                if (i++ == arg.id) {
+                    result.append(ArgumentFormat{arg.format}.format(arg_value));
+                    return true;
+                }
+                return false;
+            }(args) || ...);
+            
+        }
+    }
+    return result;
+}
 
 template <strlit::StringType to_parse, strlit::StringType... Args>
-struct Format : strlit::details::BaseString<Parser{to_parse}.length(Args...)> {
-    constexpr Format() : strlit::details::BaseString<Parser{to_parse}.length(Args...)>() {
-        constexpr auto parser = Parser{to_parse};
-        auto result = parser.parse(Args...);
+struct Format : strlit::details::BaseString<format(to_parse, Args...).length()> {
+    constexpr Format() : strlit::details::BaseString<format(to_parse, Args...).length()>() {
+        auto result = format(to_parse, Args...);
         std::copy(result.begin(), result.end(), this->text);
     }
 };
