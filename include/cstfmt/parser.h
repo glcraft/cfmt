@@ -69,29 +69,22 @@ struct Token {
     }
 };
 constexpr auto parse(std::string_view text) {
-    std::vector<std::variant<std::string, Arg>> result;
+    std::vector<Token> result;
     int32_t level=0;
     size_t prev_pos = 0;
     uint32_t current_index = 0;
     auto get_index = [&](std::optional<std::string_view> str) {
-        if (str) {
+        if (str && !str->empty()) {
             return to_int(*str);
-        } else {
-            return current_index++;
         }
+        return current_index++;
     };
     auto add_string_to_last = [&](auto... to_add) {
         if (result.empty()) {
-            result.push_back(std::string(to_add...));
+            result.emplace_back(std::string(to_add...));
         }
         auto& last = result.back();
-        if (std::holds_alternative<std::string>(last)) {
-            auto& str = std::get<std::string>(last);
-            str.append(to_add...);
-        } else {
-            auto& arg = std::get<Arg>(last);
-            arg.format.append(to_add...);
-        }
+        last.format.append(to_add...);
     };
     for(size_t pos = 0;pos<text.length();pos++) {
         auto ch = text[pos];
@@ -101,7 +94,7 @@ constexpr auto parse(std::string_view text) {
                     add_string_to_last('{', 1);
                     continue;
                 }
-                result.push_back(std::string(text.substr(prev_pos, pos-prev_pos)));
+                result.emplace_back(std::move(text.substr(prev_pos, pos-prev_pos)));
             }
             level++;
             prev_pos = pos+1;
@@ -115,9 +108,9 @@ constexpr auto parse(std::string_view text) {
                 auto arg = text.substr(prev_pos, pos-prev_pos);
                 auto pos = arg.find(':');
                 if (pos == std::string::npos) {
-                    result.push_back(Arg{get_index(std::nullopt), ""});
+                    result.push_back(Token{get_index(std::nullopt), std::string()});
                 } else {
-                    result.push_back(Arg{to_int(arg.substr(0, pos)), std::string(arg.substr(pos+1))});
+                    result.push_back(Token{get_index(arg.substr(0, pos)), std::string(arg.substr(pos+1))});
                 }
             } else if (level < 0) {
                 // throw std::runtime_error("Unmatched '}'");
@@ -134,23 +127,22 @@ constexpr auto parse(std::string_view text) {
 constexpr auto format(std::string_view format_text, auto... args) -> std::string {
     auto parsed = parse(format_text);
     std::string result;
-    for (auto& item : parsed) {
-        if (std::holds_alternative<std::string>(item)) {
-            result.append(std::get<std::string>(item));
+    for (auto& arg : parsed) {
+        if (!arg.is_arg()) {
+            result.append(arg.format);
         } else {
-            auto& arg = std::get<Arg>(item);
             // if (arg.id >= sizeof...(args)) {
                 // throw std::runtime_error("Not enough arguments");
             // }
             arg.format = format(std::string_view{arg.format}, args...);
-            ([&result, &arg, i=0](auto&& arg_value) mutable {
+            int i=0;
+            ([&result, &arg, &i](auto&& arg_value) mutable {
                 if (i++ == arg.id) {
                     result.append(ArgumentFormat{arg.format}.format(arg_value));
                     return true;
                 }
                 return false;
             }(args) || ...);
-            
         }
     }
     return result;
