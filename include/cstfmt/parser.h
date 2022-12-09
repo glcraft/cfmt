@@ -149,8 +149,11 @@ constexpr auto format(std::string_view format_text, auto... args) -> std::string
 }
 
 template <strlit::StringType to_parse, strlit::StringType... Args>
-struct Format : strlit::details::BaseString<format(to_parse, Args...).length()> {
-    constexpr Format() : strlit::details::BaseString<format(to_parse, Args...).length()>() {
+static constexpr auto format_length = format(to_parse, Args...).length();
+
+template <strlit::StringType to_parse, strlit::StringType... Args>
+struct Format : strlit::details::BaseString<format_length<to_parse, Args...>> {
+    constexpr Format() : strlit::details::BaseString<format_length<to_parse, Args...>>() {
         auto result = format(to_parse, Args...);
         std::copy(result.begin(), result.end(), this->text);
     }
