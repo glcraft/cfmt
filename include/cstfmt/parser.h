@@ -5,28 +5,6 @@
 #include <optional>
 #include "strlit.h"
 
-struct Token;
-struct PlainText  {
-    std::string text;
-};
-struct Argument {
-    uint8_t index = -1;
-    std::optional<std::vector<Token>> format;
-};
-struct Token {
-    enum class Type {
-        PlainText,
-        Argument
-    } type;
-    std::optional<PlainText> plain_text;
-    std::optional<Argument> argument;
-    constexpr Token(PlainText&& text) : plain_text(text), argument(std::nullopt), type(Type::PlainText) {}
-    constexpr Token(Argument&& arg) : plain_text(std::nullopt), argument(arg), type(Type::Argument) {}
-    constexpr Token(const Token& other) : plain_text(other.plain_text), argument(other.argument), type(other.type) {}
-    constexpr Token(Token&& other) : plain_text(std::move(other.plain_text)), argument(std::move(other.argument)), type(other.type) {}
-    constexpr ~Token()  = default;
-};
-
 struct ArgumentFormat {
     uint32_t fill = 0;
     char align = '<';
@@ -80,9 +58,15 @@ constexpr uint32_t to_int(std::string_view str) {
     }
     return result;
 }
-struct Arg {
-    uint32_t id;
+struct Token {
+    uint32_t id=-1;
     std::string format;
+    constexpr Token(uint32_t id, std::string_view format) : id(id), format(format) {}
+    constexpr Token(std::string_view format) : format(format) {}
+    constexpr Token(std::string&& format) : format(std::move(format)) {}
+    constexpr auto  is_arg() const {
+        return id != -1;
+    }
 };
 constexpr auto parse(std::string_view text) {
     std::vector<std::variant<std::string, Arg>> result;
