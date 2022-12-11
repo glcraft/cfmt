@@ -6,10 +6,16 @@
 #include "strlit.h"
 #include "utils.h"
 
-struct ArgumentFormat {
-    uint32_t fill = 0;
+template <class T>
+struct ArgumentFormat;
+
+template <class StringT>
+    requires std::same_as<std::string_view, StringT> || std::convertible_to<StringT, std::string_view>
+struct ArgumentFormat<StringT> {
+    int16_t fill = 0;
     char align = '<';
     char sign = ' ';
+    uint32_t width = 0;
     constexpr ArgumentFormat() = default;
     constexpr ArgumentFormat(uint32_t fill, char align, char sign) : fill(fill), align(align), sign(sign) 
     {}
@@ -19,19 +25,22 @@ struct ArgumentFormat {
             if (ch >= '0' && ch <= '9') {
                 fill = fill*10 + (ch-'0');
             } else if (ch == '<' || ch == '>' || ch == '^') {
-                align = ch;
+                this->align = ch;
             } else if (ch == '+' || ch == '-' || ch == ' ') {
                 sign = ch;
             }
         }
     }
 
-    constexpr std::string format(std::string_view str) const {
+    constexpr auto format(const StringT& input) const -> std::string{
+        auto str = std::string_view(input);
         std::string result;
         result.reserve(std::max<size_t>(str.length(),fill));
         if (align == '<') {
             result.append(str);
-            result.append(fill-str.length(), sign);
+            if (str.length() < fill) {
+                result.append(fill-str.length(), sign);
+            }
         } else if (align == '>') {
             if (str.length() < fill) {
                 result.append(fill-str.length(), sign);
@@ -139,7 +148,7 @@ constexpr auto format(std::string_view format_text, auto... args) -> std::string
             int i=0;
             ([&result, &arg, &i](auto&& arg_value) mutable {
                 if (i++ == arg.id) {
-                    result.append(ArgumentFormat{arg.format}.format(arg_value));
+                    result.append(ArgumentFormat<std::remove_cvref_t<decltype(arg_value)>>{arg.format}.format(arg_value));
                     return true;
                 }
                 return false;
