@@ -4,6 +4,7 @@
 #include <optional>
 #include <concepts>
 #include "strlit.h"
+#include "utils.h"
 
 struct ArgumentFormat {
     uint32_t fill = 0;
@@ -51,17 +52,17 @@ struct ArgumentFormat {
     }
 };
 
-constexpr uint32_t to_int(std::string_view str) {
-    size_t result = 0;
-    for (auto c : str) {
-        result = result*10 + (c-'0');
-    }
-    return result;
-}
+
+
+
+
+
+
+
 struct Token {
-    uint32_t id=-1;
+    int64_t id=-1;
     std::string format;
-    constexpr Token(uint32_t id, std::string_view format) : id(id), format(format) {}
+    constexpr Token(int64_t id, std::string_view format) : id(id), format(format) {}
     constexpr Token(std::string_view format) : format(format) {}
     constexpr Token(std::string&& format) : format(std::move(format)) {}
     constexpr auto  is_arg() const {
@@ -75,9 +76,9 @@ constexpr auto parse(std::string_view text) {
     uint32_t current_index = 0;
     auto get_index = [&](std::optional<std::string_view> str) {
         if (str && !str->empty()) {
-            return to_int(*str);
+            return cfmt::utils::sv_to_int(*str);
         }
-        return current_index++;
+        return static_cast<int64_t>(current_index++);
     };
     auto add_string_to_last = [&](auto... to_add) {
         if (result.empty()) {
