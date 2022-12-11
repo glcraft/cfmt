@@ -15,8 +15,6 @@ struct Formatter<StringT> {
     char sign = ' ';
     uint32_t width = 0;
     constexpr Formatter() = default;
-    constexpr Formatter(uint32_t fill, char align, char sign) : fill(fill), align(align), sign(sign) 
-    {}
     constexpr Formatter(std::string_view format_text) {
         std::optional<char> align;
         for (auto ch : format_text) {
@@ -63,8 +61,6 @@ template <std::integral IntegralT>
 struct Formatter<IntegralT> : Formatter<std::string_view>
 {
     constexpr Formatter() = default;
-    constexpr Formatter(uint32_t fill, char align, char sign) : Formatter<std::string_view>(fill, align, sign)
-    {}
     constexpr Formatter(std::string_view format_text) : Formatter<std::string_view>(format_text) 
     {}
     constexpr auto format(IntegralT input) const -> std::string {
