@@ -1,23 +1,19 @@
+#include <cstddef>
 #include <iostream>
-#include <cstfmt/parser.h>
+#include <cstfmt/format.h>
+#include <string_view>
 
 using namespace std;
-static constexpr char txt[] = "Hello {1} {0} world";
-// static constexpr auto parser = Parser{txt};
+static constexpr char txt[] = "Hello {:->10} {:-<10} world";
 
-// static constexpr auto length_plaintext = parser.length_plaintext();
-// static constexpr auto number_arguments = parser.number_arguments();
-// static constexpr auto len = Parser{txt}.parse("foo", "bar").length();
+static constexpr auto formatted = strlit::Shrink<cfmt::format(txt, "foo", 10)>{};
 
-static constexpr auto formatted = Format<txt, "foo", strlit::Int<10>{}>{};
-
-
-// static_assert(parser.size_text() == 18);
 int main(int argc, char** argv)
 {
-    // cout << "len:" << len << endl;
-    cout << "value:'" << formatted.sv() << "'" << endl;
-    auto test = Parser{txt}.parse("foo", "bar");
+    cout << "value constexpr:'" << static_cast<std::string_view>(formatted) << "'" << endl;
+    auto test = cfmt::format(txt, "foo", "bar");
+    cout << "value runtime:'" << test.sv() << "'" << endl;
+
     // cout << "value:'" << formatted.sv() << "'" << endl;
     // cout << "length_plaintext:" << length_plaintext << endl;
     // cout << "number_arguments:" << number_arguments << endl;
