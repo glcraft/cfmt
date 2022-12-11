@@ -17,21 +17,11 @@ namespace cfmt::utils {
         }
         return result * sign;
     }
-    constexpr auto int_to_string(std::integral auto input) -> std::string {
-        std::string result;
-        if (input < 0) {
-            result.push_back('-');
-            input = -input;
+    constexpr auto to_upper(char c) -> char {
+        if (c >= 'a' && c <= 'z') {
+            return c - 'a' + 'A';
         }
-        if (input == 0) {
-            result.push_back('0');
-        } else {
-            while (input > 0) {
-                result.push_back('0'+input%10);
-                input /= 10;
-            }
-            std::reverse(result.begin(), result.end());
-        }
-        return result;
+        return c;
     }
+    
 }
