@@ -133,8 +133,19 @@ constexpr auto parse(std::string_view text) {
     }
     return result;
 }
+constexpr auto format_string(std::string_view format_text, auto... args) -> std::string; 
 
-constexpr auto format(std::string_view format_text, auto... args) -> std::string {
+template <size_t N = 10000>
+constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>
+{
+    strlit::String<N> res;
+    auto formatted = format_string(format_text, args...);
+    std::copy(formatted.begin(), formatted.end(), res.text);
+    std::fill(res.text+formatted.length(), res.text+res.size, '\0');
+    return res;
+}
+
+constexpr auto format_string(std::string_view format_text, auto... args) -> std::string {
     auto parsed = parse(format_text);
     std::string result;
     for (auto& arg : parsed) {
@@ -158,13 +169,7 @@ constexpr auto format(std::string_view format_text, auto... args) -> std::string
     return result;
 }
 
-template <strlit::StringType to_parse, strlit::StringType... Args>
-static constexpr auto format_length = format(to_parse, Args...).length();
-
-template <strlit::StringType to_parse, strlit::StringType... Args>
-struct Format : strlit::details::BaseString<format_length<to_parse, Args...>> {
-    constexpr Format() : strlit::details::BaseString<format_length<to_parse, Args...>>() {
-        auto result = format(to_parse, Args...);
-        std::copy(result.begin(), result.end(), this->text);
-    }
-};
+static constexpr size_t format_length(std::string_view format_text, auto... args) 
+{
+    return format(format_text, args...).length();
+}
