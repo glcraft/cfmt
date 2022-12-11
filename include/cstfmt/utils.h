@@ -1,3 +1,4 @@
+#pragma once
 #include <cstddef>
 #include <concepts>
 #include <string_view>
