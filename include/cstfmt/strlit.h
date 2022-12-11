@@ -1,4 +1,3 @@
-#include <__concepts/arithmetic.h>
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
@@ -23,6 +22,11 @@ namespace strlit {
             size_t size = N;
             char text[N+1];
         };
+        constexpr size_t string_length(const char* str) {
+            auto begin = str;
+            while (*str++);
+            return str-begin;
+        }
     }
 
     template<size_t N>
