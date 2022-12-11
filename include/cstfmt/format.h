@@ -75,17 +75,8 @@ namespace cfmt
         }
         return result;
     }
-    constexpr auto format_string(std::string_view format_text, auto... args) -> std::string; 
-
     template <size_t N = 10000>
-    constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>
-    {
-        strlit::String<N> res;
-        auto formatted = format_string(format_text, args...);
-        std::copy(formatted.begin(), formatted.end(), res.text);
-        std::fill(res.text+formatted.length(), res.text+res.size, '\0');
-        return res;
-    }
+    constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>;
 
     constexpr auto format_string(std::string_view format_text, auto... args) -> std::string {
         auto parsed = parse(format_text);
@@ -111,8 +102,13 @@ namespace cfmt
         return result;
     }
 
-    static constexpr size_t format_length(std::string_view format_text, auto... args) 
+    template <size_t N>
+    constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>
     {
-        return format(format_text, args...).length();
+        strlit::String<N> res;
+        auto formatted = format_string(format_text, args...);
+        std::copy(formatted.begin(), formatted.end(), res.text);
+        std::fill(res.text+formatted.length(), res.text+res.size, '\0');
+        return res;
     }
 }
