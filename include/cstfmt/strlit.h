@@ -172,4 +172,10 @@ namespace strlit {
         constexpr StringType(Int<N>) : Int<N>() {}
         constexpr StringType(decltype(N)) : Int<N>() {}
     };
+    template <strlit::StringType Str>
+    struct Shrink : strlit::details::BaseString<details::string_length(Str.text)> {
+        constexpr Shrink() : strlit::details::BaseString<details::string_length(Str.text)>() {
+            std::copy(Str.text, Str.text+details::string_length(Str.text), this->text);
+        }
+    };
 }
