@@ -61,12 +61,18 @@ struct ArgumentFormat<StringT> {
     }
 };
 
-
-
-
-
-
-
+template <std::integral IntegralT>
+struct ArgumentFormat<IntegralT> : ArgumentFormat<std::string_view>
+{
+    constexpr ArgumentFormat() = default;
+    constexpr ArgumentFormat(uint32_t fill, char align, char sign) : ArgumentFormat<std::string_view>(fill, align, sign)
+    {}
+    constexpr ArgumentFormat(std::string_view format_text) : ArgumentFormat<std::string_view>(format_text) 
+    {}
+    constexpr auto format(IntegralT input) const -> std::string {
+        return ArgumentFormat<std::string_view>::format(cfmt::utils::int_to_string(input));
+    }
+};
 
 struct Token {
     int64_t id=-1;
