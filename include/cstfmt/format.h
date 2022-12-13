@@ -93,10 +93,14 @@ namespace cfmt
                     // throw std::runtime_error("Not enough arguments");
                 // }
                 arg.format = format(std::string_view{arg.format}, args...);
+
                 int i=0;
                 ([&result, &arg, &i](auto&& arg_value) mutable {
+                    using formatter_t = Formatter<std::remove_cvref_t<decltype(arg_value)>>;
                     if (i++ == arg.id) {
-                        result.append(Formatter<std::remove_cvref_t<decltype(arg_value)>>{arg.format}.format(arg_value));
+                        auto formatter = formatter_t{};
+                        auto descriptor = formatter.parse(arg.format);
+                        result.append(formatter.format(arg_value, descriptor));
                         return true;
                     }
                     return false;
