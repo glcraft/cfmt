@@ -7,14 +7,14 @@ option("asm")
     set_showmenu(true)
     set_description("Output assembly code")
 
-target("cstfmt")
+target("cfmt")
     set_kind("headeronly")
     set_languages("cxx20")
     add_includedirs("include", {public = true})
-    add_headerfiles("include/(cstfmt/**.h)", "include/(cstfmt/**.inl)")
+    add_headerfiles("include/(cfmt/**.h)", "include/(cfmt/**.inl)")
 
-target("cstfmt_test")
-    add_deps("cstfmt")
+target("cfmt_test")
+    add_deps("cfmt")
     set_languages("cxx20")
     add_files("src/test.cpp")
     if has_config("asm") then 
