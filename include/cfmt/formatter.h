@@ -246,18 +246,4 @@ namespace cfmt
             return result;
         }
     };
-    template <std::floating_point FloatT>
-    struct Formatter<FloatT> : Formatter<std::string_view>
-    {
-        template <class DescriptorType>
-        constexpr auto format(FloatT input, const DescriptorType& desc) const -> std::string {
-            return Formatter<std::string_view>::format(float_to_string(input, desc), desc);
-        }
-        template <class DescriptorType>
-        constexpr auto float_to_string(std::floating_point auto input, const DescriptorType& params) const -> std::string {
-            static_assert(std::numeric_limits<FloatT>::is_iec559, "IEEE 754 required");
-            // std::array<char, std::numeric_limits<float>::max_exponent10 + 3> buffer;
-            return std::string{};
-        }
-    };
 }
