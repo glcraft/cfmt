@@ -80,9 +80,6 @@ namespace cfmt
         }
     }
 
-    template <size_t N = 10000>
-    constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>;
-
     constexpr auto format_runtime(std::string_view format_text, auto... args) -> std::string {
         auto parsed = details::parse(format_text);
         std::string result;
@@ -93,7 +90,7 @@ namespace cfmt
                 // if (arg.id >= sizeof...(args)) {
                     // throw std::runtime_error("Not enough arguments");
                 // }
-                arg.format = format(std::string_view{arg.format}, args...);
+                arg.format = format_runtime(std::string_view{arg.format}, args...);
 
                 int i=0;
                 ([&result, &arg, &i](auto&& arg_value) mutable {
@@ -112,7 +109,7 @@ namespace cfmt
     }
 
 
-    template <size_t N>
+    template <size_t N = 10000>
     constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>
     {
         strlit::String<N> res;

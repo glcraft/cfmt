@@ -33,6 +33,13 @@ namespace strlit {
             while (*str++);
             return str-begin;
         }
+        constexpr size_t string_length(std::string_view str) {
+            const auto begin = std::begin(str);
+            const auto end = std::end(str);
+            auto it = begin;
+            while (it != end && *it++);
+            return std::distance(begin, it);
+        }
     }
 
     template<size_t N>
@@ -176,8 +183,8 @@ namespace strlit {
         constexpr StringType(decltype(N)) : Int<N>() {}
     };
     template <StringType Str>
-    struct Shrink : details::BaseString<Str.length()> {
-        constexpr Shrink() : details::BaseString<Str.length()>() {
+    struct Shrink : details::BaseString<details::string_length(Str)> {
+        constexpr Shrink() : details::BaseString<details::string_length(Str)>() {
             std::copy(Str.text, Str.text+Str.size, this->text);
         }
     };
