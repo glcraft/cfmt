@@ -2,6 +2,7 @@
 #include <cstddef>
 #include <string_view>
 #include <string>
+#include <vector>
 #include <optional>
 #include <concepts>
 #include "strlit.h"
