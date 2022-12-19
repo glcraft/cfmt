@@ -11,7 +11,7 @@ namespace cfmt
     //format_spec ::= [[fill]align][sign]["#"]["0"][width]["." precision]["L"][type]
     struct FormatDescriptor {
         std::optional<std::pair<char, char>> fill_align;
-        char sign = ' ';
+        char sign = '-';
         bool numb_prefix = false;
         bool zero_pad = false;
         uint32_t width = 0;
@@ -217,12 +217,15 @@ namespace cfmt
             auto to_upper = is_upper 
                 ? [](char ch) { return utils::to_upper(ch); } 
                 : [](char ch) { return ch; };
-            if constexpr (std::signed_integral<decltype(input)>) {
-                if (input < 0) {
-                    result.push_back('-');
-                    input = -input;
-                }
+            if (std::signed_integral<decltype(input)> && input < 0) {
+                result.push_back('-');
+                input = -input;
+            } else if (params.sign == '+') {
+                result.push_back('+');
+            } else if (params.sign == ' ') {
+                result.push_back(' ');
             }
+
             if (params.numb_prefix) {
                 if (base == 16) {
                     result.push_back('0');
