@@ -156,16 +156,15 @@ namespace cfmt
     template <class T>
     struct Formatter;
 
-    template <class StringT>
-        requires std::same_as<std::string_view, StringT> || std::convertible_to<StringT, std::string_view>
-    struct Formatter<StringT> {
+    template <>
+    struct Formatter<std::string_view> {
         constexpr auto parse(std::string_view input) const -> FormatDescriptor {
             FormatDescriptor desc;
             desc.parse(input.begin(), input.end());
             return desc;
         }
         template <class DescriptorType>
-        constexpr auto format(const StringT& input, const DescriptorType& desc) const -> std::string{
+        constexpr auto format(const std::string_view& input, const DescriptorType& desc) const -> std::string{
             auto str = std::string_view(input);
             std::string result;
             result.reserve(std::max<size_t>(str.length(),desc.width));
@@ -188,6 +187,15 @@ namespace cfmt
                 }
             }
             return result;
+        }
+    };
+
+    template <class StringT>
+        requires std::convertible_to<StringT, std::string_view>
+    struct Formatter<StringT> : Formatter<std::string_view> {
+        template <class DescriptorType>
+        constexpr auto format(const StringT& input, const DescriptorType& desc) const -> std::string{
+            return Formatter<std::string_view>::format(std::string_view(input), desc);
         }
     };
 
