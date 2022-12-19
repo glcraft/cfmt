@@ -5,8 +5,8 @@
 #include <tuple>
 
 using namespace std;
-static constexpr char txt[] = "Hello {:-^20} <{:#x}> |{}| world";
-static constexpr auto integer = 123456;
+static constexpr char txt[] = "Hello {:-^20} <{:-^#20x}> |{}| world";
+static constexpr auto integer = std::array{1,2,3};
 
 static constexpr auto formatted = strlit::Shrink<cfmt::format(txt, "foo", integer)>{};
 
