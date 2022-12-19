@@ -11,9 +11,10 @@ target("cfmt")
     set_kind("headeronly")
     set_languages("cxx20")
     add_includedirs("include", {public = true})
-    add_headerfiles("include/(cfmt/**.h)", "include/(cfmt/**.inl)")
+    add_headerfiles("include/(cfmt/**.h)")
 
 target("cfmt_test")
+    set_kind("binary")
     add_deps("cfmt")
     set_languages("cxx20")
     add_files("src/test.cpp")
@@ -23,7 +24,4 @@ target("cfmt_test")
         else
             add_cxflags("/FA")
         end
-        set_kind("binary")
-    else
-        set_kind("binary")
     end
