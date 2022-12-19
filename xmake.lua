@@ -13,11 +13,11 @@ target("cfmt")
     add_includedirs("include", {public = true})
     add_headerfiles("include/(cfmt/**.h)")
 
-target("cfmt_test")
+target("cfmt-example")
     set_kind("binary")
     add_deps("cfmt")
     set_languages("cxx20")
-    add_files("src/test.cpp")
+    add_files("src/example.cpp")
     if has_config("asm") then 
         if not is_plat("windows") then
             add_cxflags("-S")
