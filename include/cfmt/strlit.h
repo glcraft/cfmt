@@ -19,6 +19,11 @@ namespace strlit {
             constexpr auto sv() const -> std::string_view {
                 return std::string_view(text, size);
             }
+            constexpr auto length() const -> size_t {
+                size_t i = 0;
+                while (text[i++] && i < N);
+                return i-1;
+            }
             static constexpr size_t SIZE = N;
             size_t size = N;
             char text[N+1];
@@ -47,10 +52,7 @@ namespace strlit {
     template <class T>
     static constexpr bool always_false = false;
     template<class T>
-    struct StringType
-    {
-        static_assert(always_false<T>, "Not a string type");
-    };
+    struct StringType;
     template<IsStringType T>
     struct StringType<T> : T
     {
@@ -173,10 +175,10 @@ namespace strlit {
         constexpr StringType(Int<N>) : Int<N>() {}
         constexpr StringType(decltype(N)) : Int<N>() {}
     };
-    template <strlit::StringType Str>
-    struct Shrink : strlit::details::BaseString<details::string_length(Str.text)> {
-        constexpr Shrink() : strlit::details::BaseString<details::string_length(Str.text)>() {
-            std::copy(Str.text, Str.text+details::string_length(Str.text), this->text);
+    template <StringType Str>
+    struct Shrink : details::BaseString<Str.length()> {
+        constexpr Shrink() : details::BaseString<Str.length()>() {
+            std::copy(Str.text, Str.text+Str.size, this->text);
         }
     };
 }
