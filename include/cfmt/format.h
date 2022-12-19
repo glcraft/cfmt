@@ -82,7 +82,7 @@ namespace cfmt
     template <size_t N = 10000>
     constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>;
 
-    constexpr auto format_string(std::string_view format_text, auto... args) -> std::string {
+    constexpr auto format_runtime(std::string_view format_text, auto... args) -> std::string {
         auto parsed = details::parse(format_text);
         std::string result;
         for (auto& arg : parsed) {
@@ -110,11 +110,12 @@ namespace cfmt
         return result;
     }
 
+
     template <size_t N>
     constexpr auto format(std::string_view format_text, auto... args) -> strlit::String<N>
     {
         strlit::String<N> res;
-        auto formatted = format_string(format_text, args...);
+        auto formatted = format_runtime(format_text, args...);
         std::copy(formatted.begin(), formatted.end(), res.text);
         std::fill(res.text+formatted.length(), res.text+res.size, '\0');
         return res;
