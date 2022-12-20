@@ -2,6 +2,8 @@
 
 This is a portage of the library [{fmt}](https://fmt.dev/latest/index.html) in compile time using C++20 features.
 
+Although the implementation is different from the {fmt}, the syntax of the format string is the same.
+
 ## Supported formatable type 
 
 * integral types
