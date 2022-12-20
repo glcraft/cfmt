@@ -37,7 +37,9 @@ namespace strlit {
             const auto begin = std::begin(str);
             const auto end = std::end(str);
             auto it = begin;
-            while (it != end && *it++);
+            while (it != end && *it) {
+                ++it;
+            }
             return std::distance(begin, it);
         }
     }
