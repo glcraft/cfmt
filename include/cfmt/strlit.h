@@ -187,7 +187,7 @@ namespace strlit {
     template <StringType Str>
     struct Shrink : details::BaseString<details::string_length(Str)> {
         constexpr Shrink() : details::BaseString<details::string_length(Str)>() {
-            std::copy(Str.text, Str.text+Str.size, this->text);
+            std::copy(Str.text, Str.text+this->SIZE, this->text);
         }
     };
 }
