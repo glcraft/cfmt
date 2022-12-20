@@ -114,8 +114,10 @@ namespace cfmt
     {
         strlit::String<N> res;
         auto formatted = format_runtime(format_text, args...);
-        std::copy(formatted.begin(), formatted.end(), res.text);
-        std::fill(res.text+formatted.length(), res.text+res.size, '\0');
+        auto res_it = res.text;
+        auto res_end = res.text+N;
+        res_it = std::copy(formatted.begin(), formatted.end(), res_it);
+        std::fill(res_it, res_end, '\0');
         return res;
     }
 }
