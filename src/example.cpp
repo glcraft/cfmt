@@ -25,8 +25,8 @@ static constexpr auto mapped = std::array{std::pair{"hello", 123}, std::pair{"wo
 
 int main(int argc, char** argv)
 {
-    static constexpr auto compile_time_value = strlit::Shrink<cfmt::format<500>(txt, 12345, "foo", contained, mapped)>{};
-    // cout << "value constexpr:'" << compile_time_value.sv() << "'" << endl;
+    static constexpr auto compile_time_value = strlit::Shrink<cfmt::format<300>(txt, 12345, "foo", contained, mapped)>{};
+    cout << "value constexpr:'" << compile_time_value.sv() << "'" << endl;
 
     auto runtime_value = cfmt::format_runtime(txt, 12345, "foo", contained, mapped);
     cout << "value runtime:'" << runtime_value << "'" << endl;
